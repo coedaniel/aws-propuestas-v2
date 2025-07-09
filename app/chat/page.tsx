@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Send, Bot, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ModelSelector from '@/components/ModelSelector';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -23,7 +24,7 @@ export default function ChatPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState('amazon.nova-pro-v1:0'); // Default Nova Pro
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = async () => {
@@ -107,17 +108,12 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {MODELS.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+              <ModelSelector
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                disabled={isLoading}
+                compact={true}
+              />
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Send, Bot, User, FileText, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ModelSelector from '@/components/ModelSelector';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -32,6 +33,7 @@ export default function ArquitectoPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [selectedModel, setSelectedModel] = useState('anthropic.claude-3-haiku-20240307-v1:0'); // Default Claude Haiku
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [projectInfo, setProjectInfo] = useState<Partial<ProjectInfo>>({});
@@ -61,7 +63,8 @@ export default function ArquitectoPage() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           currentStep,
-          projectInfo
+          projectInfo,
+          model: selectedModel
         }),
       });
 
@@ -123,7 +126,8 @@ export default function ArquitectoPage() {
         },
         body: JSON.stringify({
           projectInfo,
-          messages: messages.map(m => ({ role: m.role, content: m.content }))
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          model: selectedModel
         }),
       });
 
@@ -174,12 +178,20 @@ export default function ArquitectoPage() {
                 <p className="text-sm text-slate-600">Generador de propuestas profesionales</p>
               </div>
             </div>
-            {showProposal && (
-              <Button onClick={generateProposal} disabled={isLoading}>
-                <Download className="w-4 h-4 mr-2" />
-                Generar Propuesta
-              </Button>
-            )}
+            <div className="flex items-center space-x-4">
+              <ModelSelector
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                disabled={isLoading}
+                compact={true}
+              />
+              {showProposal && (
+                <Button onClick={generateProposal} disabled={isLoading}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Generar Propuesta
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>

@@ -3,6 +3,20 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['canvas']
   },
+  // Fix for Amplify deployment
+  trailingSlash: true,
+  images: {
+    unoptimized: true
+  },
+  // Ensure proper routing
+  async rewrites() {
+    return [
+      {
+        source: '/:path*',
+        destination: '/:path*',
+      },
+    ]
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({

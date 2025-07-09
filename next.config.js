@@ -1,21 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['canvas']
-  },
-  // Fix for Amplify deployment
+  // Critical for Amplify deployment with App Router
+  output: 'export',
   trailingSlash: true,
   images: {
     unoptimized: true
   },
-  // Ensure proper routing
-  async rewrites() {
-    return [
-      {
-        source: '/:path*',
-        destination: '/:path*',
-      },
-    ]
+  // Disable server-side features for static export
+  experimental: {
+    serverComponentsExternalPackages: ['canvas']
+  },
+  // Environment variables
+  env: {
+    AWS_REGION: process.env.AWS_REGION || 'us-east-1',
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
@@ -26,9 +23,6 @@ const nextConfig = {
       });
     }
     return config;
-  },
-  env: {
-    AWS_REGION: process.env.AWS_REGION || 'us-east-1',
   }
 };
 

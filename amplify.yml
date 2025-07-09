@@ -8,11 +8,11 @@ frontend:
         - echo "NPM version:" && npm --version
     build:
       commands:
-        - echo "Building Next.js application..."
+        - echo "Building Next.js application for static export..."
         - npm run build
         - echo "Build completed successfully"
   artifacts:
-    baseDirectory: .next
+    baseDirectory: out
     files:
       - '**/*'
   cache:

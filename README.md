@@ -1,316 +1,291 @@
-# AWS Propuestas v2 🚀
+# 🚀 AWS Propuestas v2 - Sistema Profesional de Propuestas AWS con IA
 
-Sistema profesional para generar propuestas AWS con IA utilizando Amazon Bedrock. Incluye modo conversación libre y arquitecto AWS especializado para crear documentación completa, diagramas y estimaciones de costos.
+Sistema completo para generar propuestas profesionales de AWS utilizando Amazon Nova Pro y arquitectura serverless. Incluye frontend Next.js y backend Lambda con funcionalidades de chat y modo arquitecto especializado.
 
-## 🌟 Características Principales
+## ✨ Características
 
-### 🤖 Dual Mode AI System
-- **Chat Libre**: Conversación abierta con modelos de Amazon Bedrock
-- **Arquitecto AWS**: Modo guiado para generar propuestas profesionales completas
-
-### 🎯 Modelos de IA Soportados
-- **Claude 3.5 Sonnet** - Análisis avanzado y documentación
-- **Claude 3 Haiku** - Respuestas rápidas y eficientes
-- **Amazon Nova Pro** - Modelo multimodal de Amazon
-- **Amazon Titan** - Modelos fundacionales de AWS
-
-### 📋 Generación Automática de Documentos
-- **Documentos Word** - Propuestas ejecutivas profesionales
-- **Scripts CloudFormation** - Automatización de despliegue
-- **Diagramas SVG/PNG** - Arquitecturas visuales
-- **Archivos Draw.io** - Diagramas editables
-- **Estimaciones de Costos** - CSV/Excel con precios AWS
-- **Guías de Calculadora** - Instrucciones para AWS Pricing Calculator
+- 🤖 **Chat con IA**: Conversaciones inteligentes con Amazon Nova Pro
+- 🏗️ **Modo Arquitecto**: Generación guiada de propuestas AWS profesionales
+- 📄 **Generación de Documentos**: CloudFormation, diagramas, costos y documentación
+- 🔒 **Seguro**: Permisos IAM configurados correctamente
+- ⚡ **Serverless**: Arquitectura completamente serverless en AWS
+- 🎨 **UI Moderna**: Interfaz responsive con Tailwind CSS
 
 ## 🏗️ Arquitectura
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Next.js App  │────│  API Gateway    │────│  Lambda Functions│
-│   (Frontend)    │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                                       │
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │   DynamoDB      │    │  Amazon Bedrock │
-                       │   (Sessions)    │    │   (AI Models)   │
-                       └─────────────────┘    └─────────────────┘
-                                                       │
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │      S3         │    │   CloudWatch    │
-                       │  (Documents)    │    │    (Logs)       │
-                       └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   AWS Amplify   │    │   API Gateway    │    │ Lambda Functions│
+│   (Frontend)    │───▶│                  │───▶│                 │
+│   Next.js       │    │ /chat            │    │ • Chat Handler  │
+│   Static Export │    │ /arquitecto      │    │ • Arquitecto    │
+└─────────────────┘    │ /documents       │    │ • Documents     │
+                       │ /health          │    │ • Health        │
+                       └──────────────────┘    └─────────────────┘
+                                │                        │
+                                │                        ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │   Amazon Nova    │    │   DynamoDB      │
+                       │   Pro (Bedrock)  │    │   + S3 Bucket   │
+                       └──────────────────┘    └─────────────────┘
 ```
 
-## 🚀 Instalación y Despliegue
+## 🚀 Despliegue Rápido (Un Click)
 
-### Prerrequisitos
-
-1. **AWS CLI** configurado con credenciales apropiadas
-2. **AWS SAM CLI** instalado
-3. **Node.js** 18+ y npm
-4. **Permisos AWS** para Bedrock, Lambda, DynamoDB, S3, CloudFormation
-
-### Instalación Automática
+### Opción 1: Despliegue Completo Automático
 
 ```bash
-# Clonar el repositorio
-git clone <repository-url>
+curl -fsSL https://raw.githubusercontent.com/tu-usuario/aws-propuestas-v2/main/scripts/deploy.sh | bash
+```
+
+### Opción 2: Clonación Manual
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/tu-usuario/aws-propuestas-v2.git
 cd aws-propuestas-v2
 
-# Ejecutar setup completo (instala, despliega backend y configura frontend)
-./scripts/setup.sh [environment] [region]
-
-# Ejemplo:
-./scripts/setup.sh prod us-east-1
+# 2. Ejecutar script de despliegue
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
 ```
 
-### Instalación Manual
+## 📋 Prerrequisitos
+
+- ✅ AWS CLI configurado con permisos de administrador
+- ✅ AWS SAM CLI instalado
+- ✅ Node.js 18+ instalado
+- ✅ Modelos de Bedrock habilitados:
+  - `amazon.nova-pro-v1:0`
+  - `anthropic.claude-3-haiku-20240307-v1:0`
+
+### Verificación Rápida de Prerrequisitos
 
 ```bash
-# 1. Instalar dependencias
+# Ejecutar verificación automática
+./scripts/check-prerequisites.sh
+```
+
+## 🛠️ Instalación Manual (Paso a Paso)
+
+### 1. Backend (Lambda + API Gateway)
+
+```bash
+# Desplegar infraestructura serverless
+cd infrastructure
+sam build
+sam deploy --guided
+
+# Configurar variables de entorno
+export API_URL=$(aws cloudformation describe-stacks --stack-name aws-propuestas-v2-prod --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' --output text)
+```
+
+### 2. Frontend (Amplify)
+
+```bash
+# Construir aplicación Next.js
 npm install
-
-# 2. Desplegar backend
-./scripts/deploy-backend.sh prod us-east-1
-
-# 3. Configurar variables de entorno
-# El script creará automáticamente .env.local con las URLs correctas
-
-# 4. Construir frontend
 npm run build
 
-# 5. Iniciar en desarrollo
-npm run dev
+# Desplegar en Amplify
+./scripts/deploy-frontend.sh
 ```
 
 ## 🔧 Configuración
 
 ### Variables de Entorno
 
-El archivo `.env.local` se crea automáticamente durante el setup:
+Crear `.env.local`:
 
 ```env
-NEXT_PUBLIC_API_URL=https://your-api-gateway-url
+NEXT_PUBLIC_API_URL=https://tu-api-gateway-url.execute-api.us-east-1.amazonaws.com/prod
 NEXT_PUBLIC_REGION=us-east-1
 NEXT_PUBLIC_ENVIRONMENT=prod
 ```
 
-### Configuración AWS
+### Habilitar Modelos de Bedrock
 
-Asegúrate de tener los siguientes permisos en tu cuenta AWS:
+1. Ve a la consola de Amazon Bedrock
+2. Navega a "Model access"
+3. Habilita los siguientes modelos:
+   - Amazon Nova Pro (`amazon.nova-pro-v1:0`)
+   - Claude 3 Haiku (`anthropic.claude-3-haiku-20240307-v1:0`)
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "bedrock:InvokeModel",
-        "bedrock:ListFoundationModels",
-        "dynamodb:*",
-        "s3:*",
-        "lambda:*",
-        "apigateway:*",
-        "cloudformation:*",
-        "iam:*",
-        "logs:*"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
+## 🎯 Uso
+
+### Chat Básico
+
+```javascript
+// Ejemplo de llamada al endpoint de chat
+const response = await fetch(`${API_URL}/chat`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    messages: [
+      { role: 'user', content: 'Hola, necesito ayuda con AWS' }
+    ],
+    modelId: 'amazon.nova-pro-v1:0'
+  })
+});
 ```
 
-## 📖 Uso del Sistema
+### Modo Arquitecto
 
-### Modo Chat Libre
+```javascript
+// Ejemplo de llamada al modo arquitecto
+const response = await fetch(`${API_URL}/arquitecto`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    messages: [
+      { role: 'user', content: 'Necesito una propuesta para migración a AWS' }
+    ]
+  })
+});
+```
 
-1. Selecciona "Chat Libre" en la página principal
-2. Elige tu modelo de IA preferido
-3. Inicia conversación libre sobre AWS, arquitecturas, mejores prácticas
-4. Ideal para consultas rápidas y brainstorming
-
-### Modo Arquitecto AWS
-
-1. Selecciona "Arquitecto AWS" en la página principal
-2. El sistema te guiará paso a paso:
-   - **Nombre del proyecto**
-   - **Tipo de solución** (integral vs servicio específico)
-   - **Requerimientos técnicos**
-   - **Especificaciones detalladas**
-
-3. **Para Servicios Rápidos**:
-   - Catálogo de servicios comunes (EC2, RDS, S3, etc.)
-   - Preguntas mínimas necesarias
-   - Generación automática de documentos
-
-4. **Para Soluciones Integrales**:
-   - Entrevista guiada completa
-   - Análisis de requerimientos
-   - Arquitectura compleja
-   - Documentación ejecutiva
-
-### Documentos Generados
-
-El sistema genera automáticamente:
-
-- **📄 Propuesta Ejecutiva** (Word) - Documento profesional listo para cliente
-- **⚙️ Script CloudFormation** - Automatización de despliegue
-- **🎨 Diagramas de Arquitectura** - SVG, PNG y Draw.io editables
-- **💰 Estimación de Costos** - Excel/CSV con precios AWS actualizados
-- **📊 Tabla de Actividades** - Plan de implementación detallado
-- **🧮 Guía de Calculadora** - Instrucciones para AWS Pricing Calculator
-
-## 🛠️ Desarrollo
-
-### Estructura del Proyecto
+## 📁 Estructura del Proyecto
 
 ```
 aws-propuestas-v2/
-├── app/                    # Next.js App Router
-│   ├── api/               # API Routes
-│   ├── chat/              # Chat Libre pages
-│   ├── arquitecto/        # Arquitecto AWS pages
-│   └── globals.css        # Estilos globales
-├── components/            # Componentes React
-│   ├── ui/               # Componentes UI base
-│   ├── chat/             # Componentes de chat
-│   └── arquitecto/       # Componentes del arquitecto
-├── lib/                  # Utilidades y configuración
-│   ├── aws/              # Clientes AWS (Bedrock, DynamoDB, S3)
-│   ├── types/            # Definiciones TypeScript
-│   └── utils.ts          # Utilidades generales
-├── store/                # Estado global (Zustand)
-├── infrastructure/       # CloudFormation/SAM templates
-├── scripts/              # Scripts de despliegue
-└── docs/                 # Documentación adicional
+├── 📁 app/                    # Páginas Next.js
+│   ├── page.tsx              # Página principal
+│   ├── chat/                 # Página de chat
+│   └── arquitecto/           # Página de arquitecto
+├── 📁 components/            # Componentes React
+├── 📁 lambda/               # Funciones Lambda
+│   ├── chat/                # Handler de chat
+│   ├── arquitecto/          # Handler de arquitecto
+│   └── documents/           # Handler de documentos
+├── 📁 infrastructure/       # Templates SAM
+│   └── template.yaml        # Infraestructura como código
+├── 📁 scripts/             # Scripts de despliegue
+│   ├── deploy.sh           # Despliegue completo
+│   ├── deploy-frontend.sh  # Solo frontend
+│   └── check-prerequisites.sh
+└── 📄 README.md            # Este archivo
 ```
 
-### Scripts Disponibles
+## 🔍 Endpoints de la API
 
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/health` | GET | Health check del sistema |
+| `/chat` | POST | Chat general con IA |
+| `/arquitecto` | POST | Modo arquitecto especializado |
+| `/documents` | POST/GET | Gestión de documentos |
+
+## 🚨 Solución de Problemas
+
+### Error: "AccessDeniedException"
 ```bash
-# Desarrollo
-npm run dev          # Servidor de desarrollo
-npm run build        # Construir para producción
-npm run start        # Servidor de producción
-npm run lint         # Linter
-npm run type-check   # Verificación de tipos
-
-# Despliegue
-./scripts/setup.sh              # Setup completo
-./scripts/deploy-backend.sh     # Solo backend
+# Verificar modelos habilitados en Bedrock
+aws bedrock list-foundation-models --region us-east-1
 ```
 
-### Agregar Nuevos Modelos
+### Error: "Function not found"
+```bash
+# Redesplegar backend
+cd infrastructure
+sam deploy --no-confirm-changeset
+```
 
-Para agregar soporte a nuevos modelos de Bedrock:
+### Error de CORS en Frontend
+```bash
+# Verificar configuración de API Gateway
+./scripts/fix-cors.sh
+```
 
-1. Actualizar `lib/aws/bedrock.ts`
-2. Agregar configuración en `lib/types/chat.ts`
-3. Actualizar UI en componentes de selección de modelo
-
-## 🔍 Monitoreo y Logs
+## 📊 Monitoreo
 
 ### CloudWatch Logs
-
 ```bash
-# Ver logs de Lambda
-aws logs tail /aws/lambda/aws-propuestas-chat-function --follow
+# Ver logs de función específica
+aws logs tail /aws/lambda/aws-propuestas-arquitecto-prod --follow
 
 # Ver logs de API Gateway
-aws logs tail /aws/apigateway/aws-propuestas-api --follow
+aws logs tail /aws/apigateway/aws-propuestas-v2-prod --follow
 ```
 
 ### Métricas
+- **Invocaciones Lambda**: CloudWatch → Lambda → Metrics
+- **Errores API Gateway**: CloudWatch → API Gateway → Metrics
+- **Costos Bedrock**: Cost Explorer → Service: Amazon Bedrock
 
-- **Invocaciones Lambda**: Número de requests procesados
-- **Errores**: Rate de errores por función
-- **Duración**: Tiempo de respuesta promedio
-- **Costos Bedrock**: Tokens consumidos por modelo
+## 🔄 Actualizaciones
 
-## 🚨 Troubleshooting
-
-### Problemas Comunes
-
-1. **Error de permisos Bedrock**:
-   ```bash
-   # Verificar acceso a modelos
-   aws bedrock list-foundation-models --region us-east-1
-   ```
-
-2. **Error de CORS**:
-   - Verificar configuración en API Gateway
-   - Revisar headers en `app/api/chat/route.ts`
-
-3. **Error de DynamoDB**:
-   ```bash
-   # Verificar tablas
-   aws dynamodb list-tables --region us-east-1
-   ```
-
-4. **Modelos no disponibles**:
-   - Algunos modelos requieren solicitud de acceso en AWS Console
-   - Ir a Bedrock > Model Access y solicitar acceso
-
-### Logs de Debug
-
-Activar logs detallados:
-
-```env
-# En .env.local
-NEXT_PUBLIC_DEBUG=true
+### Actualizar Backend
+```bash
+cd infrastructure
+sam build
+sam deploy --no-confirm-changeset
 ```
 
-## 📊 Costos Estimados
+### Actualizar Frontend
+```bash
+npm run build
+./scripts/deploy-frontend.sh
+```
 
-### Componentes de Costo
+## 🧪 Testing
 
-- **Amazon Bedrock**: $0.003-$0.015 por 1K tokens (varía por modelo)
-- **Lambda**: $0.20 por 1M requests + $0.0000166667 por GB-segundo
-- **DynamoDB**: $0.25 por GB almacenado + $1.25 por millón de requests
-- **S3**: $0.023 por GB almacenado + $0.0004 por 1K requests
-- **API Gateway**: $3.50 por millón de requests
+### Test Local del Backend
+```bash
+# Invocar función localmente
+cd infrastructure
+sam local invoke ArquitectoFunction --event events/test-event.json
+```
 
-### Estimación Mensual (uso moderado)
+### Test del Frontend
+```bash
+# Servidor de desarrollo
+npm run dev
+# Abrir http://localhost:3000
+```
 
-- **10,000 conversaciones/mes**: ~$15-30 USD
-- **100,000 conversaciones/mes**: ~$150-300 USD
+## 💰 Costos Estimados
 
-## 🤝 Contribución
+| Servicio | Uso Mensual | Costo Estimado |
+|----------|-------------|----------------|
+| Lambda | 10,000 invocaciones | $0.20 |
+| API Gateway | 10,000 requests | $0.35 |
+| DynamoDB | 1GB storage | $0.25 |
+| S3 | 1GB storage | $0.02 |
+| Bedrock Nova Pro | 1M tokens | $8.00 |
+| **Total** | | **~$8.82/mes** |
+
+## 🤝 Contribuir
 
 1. Fork el repositorio
-2. Crear branch para feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
-4. Push al branch (`git push origin feature/nueva-funcionalidad`)
-5. Crear Pull Request
+2. Crea una rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request
+
+## 📝 Changelog
+
+### v2.0.0 (Actual)
+- ✅ Migración a Amazon Nova Pro
+- ✅ Modo arquitecto especializado
+- ✅ Frontend Next.js con static export
+- ✅ Despliegue automatizado
+- ✅ Documentación completa
+
+### v1.0.0
+- ✅ Chat básico con Claude
+- ✅ Backend Lambda
+- ✅ Frontend React básico
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+MIT License - Ver [LICENSE](LICENSE) para más detalles.
 
 ## 🆘 Soporte
 
-- **Issues**: Reportar bugs y solicitar features en GitHub Issues
-- **Documentación**: Ver carpeta `docs/` para guías detalladas
-- **AWS Support**: Para problemas específicos de servicios AWS
-
-## 🎯 Roadmap
-
-### v2.1 (Próximo)
-- [ ] Soporte para más modelos de Bedrock
-- [ ] Integración con AWS Cost Explorer
-- [ ] Templates personalizables
-- [ ] Modo colaborativo multi-usuario
-
-### v2.2 (Futuro)
-- [ ] Integración con AWS Organizations
-- [ ] Reportes de compliance
-- [ ] API pública para integraciones
-- [ ] Mobile app companion
+- 📧 **Email**: tu-email@ejemplo.com
+- 💬 **Issues**: [GitHub Issues](https://github.com/tu-usuario/aws-propuestas-v2/issues)
+- 📖 **Documentación**: [Wiki del Proyecto](https://github.com/tu-usuario/aws-propuestas-v2/wiki)
 
 ---
 
-**AWS Propuestas v2** - Construido con ❤️ usando Next.js, Amazon Bedrock y AWS Serverless
-
-🚀 **¡Listo para crear propuestas AWS profesionales con IA!**
+⭐ **¡Si este proyecto te ayuda, dale una estrella en GitHub!** ⭐

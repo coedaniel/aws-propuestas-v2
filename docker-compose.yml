@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Frontend Next.js Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - propuestas-network
+
+  # Backend SAM Local API
+  backend:
+    image: public.ecr.aws/sam/build-python3.11:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./infrastructure:/var/task
+      - ~/.aws:/root/.aws:ro
+    working_dir: /var/task
+    command: >
+      sh -c "
+        sam build &&
+        sam local start-api --host 0.0.0.0 --port 3000
+      "
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_REGION=us-east-1
+    networks:
+      - propuestas-network
+
+  # DynamoDB Local (Optional for development)
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    networks:
+      - propuestas-network
+
+  # LocalStack (Optional for full AWS simulation)
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,lambda,apigateway,dynamodb,iam,sts
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./tmp/localstack:/tmp/localstack"
+    networks:
+      - propuestas-network
+
+networks:
+  propuestas-network:
+    driver: bridge
+
+volumes:
+  node_modules:
+  next_cache:

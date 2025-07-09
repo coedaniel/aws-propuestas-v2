@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+dist/
+.aws-sam/
+*.log
+*.lock
+package-lock.json
+yarn.lock
+.env*
+.DS_Store

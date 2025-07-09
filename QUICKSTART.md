@@ -1,216 +1,183 @@
-# 🚀 Quick Start - AWS Propuestas v2
+# 🚀 AWS Propuestas v2 - Guía de Inicio Rápido
 
-¡Despliega tu sistema de propuestas AWS con IA en menos de 10 minutos!
+## Despliegue en 3 Pasos
 
-## ⚡ Despliegue en 3 Pasos
-
-### 1️⃣ Preparar Entorno
-
+### 1. Verificar Prerrequisitos ✅
 ```bash
-# Verificar prerrequisitos
-aws --version    # Debe ser v2.x
-sam --version    # Debe estar instalado
-node --version   # Debe ser v18+
-
-# Configurar AWS (si no está configurado)
-aws configure
+curl -fsSL https://raw.githubusercontent.com/tu-usuario/aws-propuestas-v2/main/scripts/check-prerequisites.sh | bash
 ```
 
-### 2️⃣ Desplegar Automáticamente
+**Prerrequisitos mínimos:**
+- AWS CLI configurado
+- SAM CLI instalado
+- Node.js 18+
+- Credenciales AWS con permisos de administrador
 
+### 2. Despliegue Automático 🚀
 ```bash
-# Clonar y desplegar todo de una vez
-git clone <repository-url>
+curl -fsSL https://raw.githubusercontent.com/tu-usuario/aws-propuestas-v2/main/scripts/deploy.sh | bash
+```
+
+**O clonación manual:**
+```bash
+git clone https://github.com/tu-usuario/aws-propuestas-v2.git
 cd aws-propuestas-v2
-
-# 🎯 UN SOLO COMANDO PARA TODO
-./scripts/setup.sh prod us-east-1
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
 ```
 
-### 3️⃣ ¡Listo para Usar!
+### 3. Habilitar Modelos de Bedrock 🤖
+1. Ve a [Amazon Bedrock Console](https://console.aws.amazon.com/bedrock/home#/modelaccess)
+2. Habilita estos modelos:
+   - ✅ `amazon.nova-pro-v1:0`
+   - ✅ `anthropic.claude-3-haiku-20240307-v1:0`
 
+## Verificación Rápida 🧪
+
+### Test del Backend
 ```bash
-# Iniciar aplicación
+# Health check
+curl https://tu-api.execute-api.us-east-1.amazonaws.com/prod/health
+
+# Test arquitecto
+curl -X POST https://tu-api.execute-api.us-east-1.amazonaws.com/prod/arquitecto \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "Hola"}]}'
+```
+
+### Test del Frontend
+1. Abre la URL de Amplify (mostrada al final del despliegue)
+2. Prueba el chat básico
+3. Prueba el modo arquitecto
+
+## Solución de Problemas 🔧
+
+### Error de CORS
+```bash
+./scripts/fix-cors.sh
+```
+
+### Error "AccessDeniedException"
+```bash
+# Verificar modelos habilitados
+aws bedrock list-foundation-models --region us-east-1 --query 'modelSummaries[?contains(modelId, `nova-pro`) || contains(modelId, `claude-3-haiku`)]'
+```
+
+### Redesplegar Solo Frontend
+```bash
+./scripts/deploy-frontend.sh
+```
+
+### Redesplegar Solo Backend
+```bash
+cd infrastructure
+sam build && sam deploy --no-confirm-changeset
+```
+
+### Ver Logs en Tiempo Real
+```bash
+# Logs de arquitecto
+aws logs tail /aws/lambda/aws-propuestas-arquitecto-prod --follow
+
+# Logs de chat
+aws logs tail /aws/lambda/aws-propuestas-chat-prod --follow
+
+# Logs de API Gateway
+aws logs tail /aws/apigateway/aws-propuestas-v2-prod --follow
+```
+
+## Estructura del Proyecto 📁
+
+```
+aws-propuestas-v2/
+├── 🎨 app/                    # Frontend Next.js
+├── 🔧 components/            # Componentes React
+├── ⚡ lambda/               # Funciones Lambda
+├── 🏗️ infrastructure/       # Templates SAM
+├── 📜 scripts/              # Scripts de despliegue
+└── 📖 docs/                 # Documentación
+```
+
+## URLs Importantes 🔗
+
+- **API Health**: `https://tu-api.execute-api.us-east-1.amazonaws.com/prod/health`
+- **Bedrock Console**: https://console.aws.amazon.com/bedrock/
+- **CloudWatch Logs**: https://console.aws.amazon.com/cloudwatch/home#logsV2:log-groups
+- **API Gateway Console**: https://console.aws.amazon.com/apigateway/
+- **Lambda Console**: https://console.aws.amazon.com/lambda/
+
+## Comandos Útiles 💻
+
+### Desarrollo Local
+```bash
+# Instalar dependencias
+npm install
+
+# Servidor de desarrollo
 npm run dev
 
-# Abrir en navegador
-open http://localhost:3000
+# Build de producción
+npm run build
+
+# Test local de Lambda
+cd infrastructure
+sam local invoke ArquitectoFunction --event events/test-event.json
 ```
 
-## 🎯 ¿Qué Hace el Script de Setup?
-
-El comando `./scripts/setup.sh` ejecuta automáticamente:
-
-1. ✅ **Instala dependencias** npm
-2. ✅ **Despliega backend** (Lambda, DynamoDB, S3, API Gateway)
-3. ✅ **Configura variables** de entorno automáticamente
-4. ✅ **Construye frontend** para producción
-5. ✅ **Muestra URLs** y configuración final
-
-## 🔧 Personalizar Despliegue
-
-### Cambiar Región
-
+### Monitoreo
 ```bash
-# Desplegar en otra región
-./scripts/setup.sh prod eu-west-1
+# Ver métricas de Lambda
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/Lambda \
+  --metric-name Invocations \
+  --dimensions Name=FunctionName,Value=aws-propuestas-arquitecto-prod \
+  --start-time 2025-01-01T00:00:00Z \
+  --end-time 2025-01-02T00:00:00Z \
+  --period 3600 \
+  --statistics Sum
+
+# Ver costos
+aws ce get-cost-and-usage \
+  --time-period Start=2025-01-01,End=2025-01-02 \
+  --granularity DAILY \
+  --metrics BlendedCost
 ```
 
-### Cambiar Ambiente
-
+### Limpieza
 ```bash
-# Desplegar ambiente de desarrollo
-./scripts/setup.sh dev us-east-1
+# Eliminar stack completo
+aws cloudformation delete-stack --stack-name aws-propuestas-v2-prod
+
+# Eliminar bucket S3 (si existe)
+aws s3 rb s3://aws-propuestas-documents-prod-* --force
 ```
 
-### Solo Backend
+## Costos Estimados 💰
 
-```bash
-# Solo desplegar backend
-./scripts/deploy-backend.sh prod us-east-1
-```
+| Servicio | Uso Mensual | Costo |
+|----------|-------------|-------|
+| Lambda | 10K invocaciones | $0.20 |
+| API Gateway | 10K requests | $0.35 |
+| DynamoDB | 1GB storage | $0.25 |
+| S3 | 1GB storage | $0.02 |
+| Bedrock Nova Pro | 1M tokens | $8.00 |
+| **Total** | | **~$8.82** |
 
-## 🧪 Verificar Despliegue
+## Soporte y Recursos 🆘
 
-```bash
-# Verificar que todo funciona
-./scripts/verify-deployment.sh prod us-east-1
-```
+- 📖 [README Completo](README.md)
+- 🐛 [Reportar Issues](https://github.com/tu-usuario/aws-propuestas-v2/issues)
+- 💬 [Discusiones](https://github.com/tu-usuario/aws-propuestas-v2/discussions)
+- 📧 Email: tu-email@ejemplo.com
 
-## 🎨 Usar la Aplicación
+## Próximos Pasos 🎯
 
-### Modo Chat Libre
-1. Ir a http://localhost:3000
-2. Seleccionar "Chat Libre"
-3. Elegir modelo de IA (Claude, Nova, Titan)
-4. ¡Chatear sobre AWS!
-
-### Modo Arquitecto AWS
-1. Seleccionar "Arquitecto AWS"
-2. Seguir el flujo guiado
-3. Responder preguntas sobre tu proyecto
-4. ¡Recibir propuesta completa con documentos!
-
-## 📋 Lo Que Obtienes
-
-### 🤖 Modelos de IA Disponibles
-- **Claude 3.5 Sonnet** - Análisis avanzado
-- **Claude 3 Haiku** - Respuestas rápidas
-- **Amazon Nova Pro** - Multimodal
-- **Amazon Titan** - Fundacional AWS
-
-### 📄 Documentos Generados
-- **Propuesta Ejecutiva** (Word)
-- **Scripts CloudFormation**
-- **Diagramas de Arquitectura** (SVG, PNG, Draw.io)
-- **Estimaciones de Costos** (Excel/CSV)
-- **Plan de Implementación**
-- **Guía de Calculadora AWS**
-
-### 🏗️ Infraestructura Desplegada
-- **API Gateway** - Endpoints REST
-- **Lambda Functions** - Lógica de negocio
-- **DynamoDB** - Almacenamiento de sesiones
-- **S3 Bucket** - Documentos generados
-- **CloudWatch** - Logs y monitoreo
-
-## 🚨 Solución de Problemas
-
-### Error: "AWS CLI not configured"
-```bash
-aws configure
-# Ingresar Access Key, Secret Key, Region
-```
-
-### Error: "SAM CLI not found"
-```bash
-# Instalar SAM CLI
-pip install aws-sam-cli
-# o seguir: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
-```
-
-### Error: "Bedrock access denied"
-```bash
-# Ir a AWS Console > Bedrock > Model Access
-# Solicitar acceso a los modelos necesarios
-```
-
-### Error: "Stack already exists"
-```bash
-# Eliminar stack existente
-aws cloudformation delete-stack --stack-name aws-propuestas-v2-prod --region us-east-1
-
-# Esperar y volver a desplegar
-./scripts/setup.sh prod us-east-1
-```
-
-## 🌐 Desplegar Frontend a Producción
-
-### Opción 1: AWS Amplify (Recomendado)
-```bash
-# Subir a GitHub
-git add .
-git commit -m "Deploy to production"
-git push origin main
-
-# Conectar en AWS Amplify Console
-# Amplify detectará automáticamente Next.js
-```
-
-### Opción 2: Vercel
-```bash
-npm install -g vercel
-vercel --prod
-```
-
-### Opción 3: Docker
-```bash
-docker build -t aws-propuestas-v2 .
-docker run -p 3000:3000 aws-propuestas-v2
-```
-
-## 💰 Costos Estimados
-
-### Uso Ligero (1,000 conversaciones/mes)
-- **Bedrock**: ~$3-5 USD
-- **Lambda**: ~$1 USD
-- **DynamoDB**: ~$1 USD
-- **S3**: ~$0.50 USD
-- **API Gateway**: ~$3.50 USD
-- **Total**: ~$9-11 USD/mes
-
-### Uso Moderado (10,000 conversaciones/mes)
-- **Total**: ~$50-80 USD/mes
-
-### Uso Alto (100,000 conversaciones/mes)
-- **Total**: ~$300-500 USD/mes
-
-## 📞 Soporte y Recursos
-
-- **📖 Documentación Completa**: Ver `README.md`
-- **🔧 Guía de Despliegue**: Ver `docs/DEPLOYMENT.md`
-- **🐛 Reportar Issues**: GitHub Issues
-- **💬 Discusiones**: GitHub Discussions
-
-## 🎯 Próximos Pasos
-
-1. **Personalizar**: Modificar prompts y flujos según tus necesidades
-2. **Integrar**: Conectar con tus sistemas existentes
-3. **Escalar**: Configurar multi-región para alta disponibilidad
-4. **Monitorear**: Configurar alertas y dashboards
-5. **Optimizar**: Ajustar costos y rendimiento
+1. **Personalizar**: Modifica los prompts en `lambda/arquitecto/app.py`
+2. **Extender**: Agrega nuevos endpoints o funcionalidades
+3. **Monitorear**: Configura alertas en CloudWatch
+4. **Optimizar**: Ajusta memoria y timeout de Lambda según uso
+5. **Escalar**: Considera usar DynamoDB On-Demand para cargas variables
 
 ---
 
-## 🎉 ¡Felicidades!
-
-¡Tu AWS Propuestas v2 está listo para generar propuestas profesionales con IA!
-
-**Tiempo total de setup**: ~5-10 minutos  
-**Próximo paso**: Abrir http://localhost:3000 y crear tu primera propuesta
-
----
-
-**¿Necesitas ayuda?** Revisa la documentación completa en `README.md` o abre un issue en GitHub.
-
-🚀 **¡Happy Building!**
+⭐ **¡Si este proyecto te ayuda, dale una estrella en GitHub!** ⭐

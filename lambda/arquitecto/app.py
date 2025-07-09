@@ -42,7 +42,7 @@ def lambda_handler(event, context):
         else:
             # Default chat functionality
             messages = body.get('messages', [])
-            model_id = body.get('modelId', 'anthropic.claude-3-sonnet-20240229-v1:0')
+            model_id = body.get('modelId', 'amazon.nova-pro-v1:0')
             
             return process_arquitecto_chat(messages, model_id, session_id, context)
         
@@ -95,6 +95,26 @@ En todas las preguntas y entregas:
             "system": system_prompt,
             "messages": messages
         }
+    elif model_id.startswith('amazon.nova'):
+        # Nova requires content to be an array and system message to be included as first user message
+        nova_messages = [{
+            "role": "user", 
+            "content": [{"text": system_prompt + "\n\nUsuario: " + messages[0].get('content', '')}]
+        }]
+        if len(messages) > 1:
+            for msg in messages[1:]:
+                nova_messages.append({
+                    "role": msg.get('role', 'user'),
+                    "content": [{"text": msg.get('content', '')}]
+                })
+        
+        prompt_body = {
+            "messages": nova_messages,
+            "inferenceConfig": {
+                "max_new_tokens": 4000,
+                "temperature": 0.7
+            }
+        }
     else:
         prompt_body = {
             "messages": [{"role": "system", "content": system_prompt}] + messages,
@@ -114,6 +134,8 @@ En todas las preguntas y entregas:
     
     if model_id.startswith('anthropic.claude'):
         ai_response = response_body.get('content', [{}])[0].get('text', '')
+    elif model_id.startswith('amazon.nova'):
+        ai_response = response_body.get('output', {}).get('message', {}).get('content', [{}])[0].get('text', '')
     else:
         ai_response = response_body.get('content', '')
     

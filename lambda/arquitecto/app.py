@@ -123,6 +123,9 @@ En todas las preguntas y entregas:
         }
     
     # Call Bedrock
+    logger.info(f"🏗️ ARQUITECTO USING MODEL: {model_id}")
+    logger.info(f"📝 PROMPT BODY: {json.dumps(prompt_body, indent=2)}")
+    
     response = bedrock_runtime.invoke_model(
         modelId=model_id,
         body=json.dumps(prompt_body),

@@ -48,12 +48,22 @@ def lambda_handler(event, context):
                 "messages": messages
             }
         elif model_id.startswith('amazon.nova'):
-            # Nova format
+            # Nova format - uses inferenceConfig instead of max_tokens
             system_prompt = get_system_prompt(mode)
+            nova_messages = [{"role": "user", "content": [{"text": system_prompt + "\n\nUsuario: " + messages[0].get('content', '')}]}]
+            if len(messages) > 1:
+                for msg in messages[1:]:
+                    nova_messages.append({
+                        "role": msg.get('role', 'user'),
+                        "content": [{"text": msg.get('content', '')}]
+                    })
+            
             prompt_body = {
-                "messages": [{"role": "system", "content": system_prompt}] + messages,
-                "max_tokens": 4000,
-                "temperature": 0.7
+                "messages": nova_messages,
+                "inferenceConfig": {
+                    "max_new_tokens": 4000,
+                    "temperature": 0.7
+                }
             }
         else:
             # Default format
@@ -65,7 +75,9 @@ def lambda_handler(event, context):
             }
         
         # Call Bedrock
-        logger.info(f"Calling Bedrock model: {model_id}")
+        logger.info(f"🚀 USING MODEL: {model_id}")
+        logger.info(f"📝 PROMPT BODY: {json.dumps(prompt_body, indent=2)}")
+        
         response = bedrock_runtime.invoke_model(
             modelId=model_id,
             body=json.dumps(prompt_body),

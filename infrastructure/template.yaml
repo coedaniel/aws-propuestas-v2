@@ -1,0 +1,269 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'AWS Propuestas v2 - Sistema profesional para generar propuestas AWS con IA'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.9
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        REGION: !Ref AWS::Region
+
+Resources:
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  # Chat Function
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'aws-propuestas-chat-${Environment}'
+      CodeUri: ../lambda/chat/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          CHAT_SESSIONS_TABLE: !Ref ChatSessionsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChatSessionsTable
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:ListFoundationModels
+            Resource: '*'
+      Events:
+        ChatApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /chat
+            Method: post
+
+  # Arquitecto Function
+  ArquitectoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'aws-propuestas-arquitecto-${Environment}'
+      CodeUri: ../lambda/arquitecto/
+      Handler: app.lambda_handler
+      Timeout: 60
+      Environment:
+        Variables:
+          PROJECTS_TABLE: !Ref ProjectsTable
+          DOCUMENTS_BUCKET: !Ref DocumentsBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProjectsTable
+        - S3CrudPolicy:
+            BucketName: !Ref DocumentsBucket
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:ListFoundationModels
+            Resource: '*'
+      Events:
+        ArquitectoApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /arquitecto
+            Method: post
+
+  # Documents Function
+  DocumentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'aws-propuestas-documents-${Environment}'
+      CodeUri: ../lambda/documents/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          DOCUMENTS_BUCKET: !Ref DocumentsBucket
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DocumentsBucket
+      Events:
+        DocumentsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /documents
+            Method: post
+        DocumentsGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /documents
+            Method: get
+
+  # Health Check Function
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'aws-propuestas-health-${Environment}'
+      InlineCode: |
+        import json
+        def lambda_handler(event, context):
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'status': 'healthy',
+                    'service': 'AWS Propuestas v2',
+                    'environment': context.function_name.split('-')[-1]
+                })
+            }
+      Handler: index.lambda_handler
+      Events:
+        HealthApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /health
+            Method: get
+
+  # DynamoDB Tables
+  ChatSessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'aws-propuestas-chat-sessions-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+  ProjectsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'aws-propuestas-projects-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # S3 Bucket for Documents
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'aws-propuestas-documents-${Environment}-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+
+  # CloudWatch Log Groups
+  ChatFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/aws-propuestas-chat-${Environment}'
+      RetentionInDays: 14
+
+  ArquitectoFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/aws-propuestas-arquitecto-${Environment}'
+      RetentionInDays: 14
+
+  DocumentsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/aws-propuestas-documents-${Environment}'
+      RetentionInDays: 14
+
+Outputs:
+  ApiGatewayUrl:
+    Description: 'API Gateway URL'
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiGatewayUrl'
+
+  ChatSessionsTableName:
+    Description: 'Chat Sessions DynamoDB Table Name'
+    Value: !Ref ChatSessionsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-ChatSessionsTable'
+
+  ProjectsTableName:
+    Description: 'Projects DynamoDB Table Name'
+    Value: !Ref ProjectsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-ProjectsTable'
+
+  DocumentsBucketName:
+    Description: 'Documents S3 Bucket Name'
+    Value: !Ref DocumentsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentsBucket'
+
+  ChatFunctionArn:
+    Description: 'Chat Function ARN'
+    Value: !GetAtt ChatFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ChatFunctionArn'
+
+  ArquitectoFunctionArn:
+    Description: 'Arquitecto Function ARN'
+    Value: !GetAtt ArquitectoFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ArquitectoFunctionArn'
